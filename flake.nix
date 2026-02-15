@@ -16,40 +16,57 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+
+        # Platform-specific packages
+        darwinPackages = with pkgs; pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          cocoapods
+          xcbuild
+        ];
+
+        linuxPackages = with pkgs; pkgs.lib.optionals pkgs.stdenv.isLinux [
+          android-studio
+        ];
       in
       {
         devShells.default = pkgs.mkShell {
           name = "cloudnativedenmark-dev";
 
           buildInputs = with pkgs; [
+            # Core tools
             nodejs_24
             yarn-berry
             zsh
-          ];
+            git
 
-          # Use zsh as the shell
+            # Expo / React Native
+            watchman
+
+            # Firebase CLI
+            firebase-tools
+          ] ++ darwinPackages ++ linuxPackages;
+
           shellHook = ''
-            # Print user commands
             echo ""
             echo "🚀 Cloud Native Denmark development environment"
             echo "🐚 Zsh version: $(zsh --version)"
             echo "📦 Node.js version: $(node --version)"
             echo "🧶 Yarn version: $(yarn --version)"
             echo ""
-            echo "Available commands:"
-            echo "  yarn install       # Install dependencies"
-            echo "  yarn develop       # Start development server"
-            echo "  yarn build         # Build for production"
-            echo "  yarn serve         # Serve production build locally"
-            echo "  yarn clean         # Clean Vite cache and dist directory"
-            echo "  yarn typecheck     # Run TypeScript type checking"
-            echo "  yarn format        # Check code formatting with Prettier"
-            echo "  yarn format:fix    # Fix code formatting with Prettier"
-            echo "  yarn lint          # Check code quality with ESLint"
-            echo "  yarn lint:fix      # Fix auto-fixable ESLint issues"
-            echo "  yarn test          # Run unit tests"
-            echo "  yarn test:watch    # Run tests in watch mode"
-            echo "  yarn test:coverage # Run tests with coverage report"
+            echo "📱 Web commands:"
+            echo "  yarn web:dev       # Start website dev server"
+            echo "  yarn web:build     # Build website for production"
+            echo "  yarn web:test      # Run website tests"
+            echo ""
+            echo "📲 Mobile commands:"
+            echo "  yarn mobile:start  # Start Expo dev server"
+            echo "  yarn mobile:ios    # Run on iOS Simulator"
+            echo "  yarn mobile:android # Run on Android Emulator"
+            echo "  yarn mobile:test   # Run mobile tests"
+            echo ""
+            echo "🔧 Shared commands:"
+            echo "  yarn shared:test   # Run shared package tests"
+            echo "  yarn test          # Run all tests"
+            echo "  yarn typecheck     # TypeScript check all packages"
             echo ""
 
             exec ${pkgs.zsh}/bin/zsh
@@ -62,6 +79,9 @@
           YARN_ENABLE_TELEMETRY = "0";
           NPM_CONFIG_FUND = "false";
           NPM_CONFIG_AUDIT = "false";
+
+          # Expo
+          EXPO_NO_TELEMETRY = "1";
         };
       }
     );

@@ -44,3 +44,23 @@ result-*
 
 # Test coverage
 coverage/
+
+# Expo / React Native
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+ios/
+android/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Shared package build
+packages/shared/dist/

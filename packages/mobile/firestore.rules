@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if isOwner(userId);
+
+      // Users can create their own profile on signup
+      allow create: if isOwner(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.role == 'attendee';
+
+      // Users can update their display name only
+      allow update: if isOwner(userId) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.createdAt == resource.data.createdAt;
+
+      // Admins can read and update any user (for role assignment)
+      allow read, update: if isAdmin();
+    }
+
+    // Ratings collection
+    match /ratings/{ratingId} {
+      // Any authenticated user can create a rating
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.stars >= 1 &&
+        request.resource.data.stars <= 5;
+
+      // Users can read their own ratings
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Users can update their own ratings (but not change userId or status)
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.sessionId == resource.data.sessionId;
+
+      // Users can delete their own ratings
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Admins can read all ratings
+      allow read: if isAdmin();
+
+      // Admins can update status (moderate)
+      allow update: if isAdmin() &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.sessionId == resource.data.sessionId &&
+        request.resource.data.stars == resource.data.stars &&
+        request.resource.data.comment == resource.data.comment &&
+        request.resource.data.createdAt == resource.data.createdAt;
+
+      // Speakers can read approved ratings for their sessions
+      // Note: This requires a custom claim or checking against a speakers collection
+      // For simplicity, we allow reading approved ratings if authenticated
+      // The actual session filtering is done in the app
+      allow read: if isAuthenticated() && resource.data.status == 'approved';
+    }
+  }
+}
