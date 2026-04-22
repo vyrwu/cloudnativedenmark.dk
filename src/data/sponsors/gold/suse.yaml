@@ -2,3 +2,4 @@ logo: images/suse.svg
 title: SUSE
 url: https://www.suse.com/
 scale: 95%
+enabled: true
